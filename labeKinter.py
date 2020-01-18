@@ -51,12 +51,13 @@ class MainWindow():
         self.scroll1 = tk.Scrollbar(window, orient = 'horizontal').grid(columnspan = 2, sticky = 'we')
 
     def __addRegion(self):
-        print('Adding Region')
-        print('listbox count is', self.listboxCount)
-        self.displayedImageCopy.append(self.displayedImage*1)
-        self.listboxCount = self.listboxCount + 1
-        self.listbox.insert(self.listboxCount, 'Region ' + str(self.listboxCount))
-        self.maskZoomed.append(np.zeros((560, 560)))
+        if self.loadedImage != []:
+            self.displayedImageCopy.append(self.displayedImage*1)
+            self.listboxCount = self.listboxCount + 1
+            self.listbox.insert(self.listboxCount, 'Region ' + str(self.listboxCount))
+            self.maskZoomed.append(np.zeros((560, 560)))
+        else:
+            self.errMsg = messagebox.showerror("Error!", "No image loaded")
 
     def __removeRegion(self):
         print('removing region')
@@ -69,7 +70,7 @@ class MainWindow():
             self.listbox.delete(self.listboxCount - 1)
             self.listboxCount = self.listboxCount - 1
         except Exception as ex:
-            print(str(ex))
+            self.errMsg = messagebox.showerror("Error!", "No region added")
 
     def __openImage(self):
         filePath = filedialog.askopenfilename(initialdir = "/", title = 'Select a file')
