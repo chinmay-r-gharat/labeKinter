@@ -83,14 +83,14 @@ class MainWindow():
         try :
             array = np.load(filePath)
         except:
-            array = np.zeros((56,56))
+            array = np.zeros((56, 56))
         scaling = 10
         a = array.shape
-        array_scaled = np.zeros((a[0]*scaling,a[1]*scaling))
-        #max_val = np.max
+        array_scaled = np.zeros((a[0]*scaling, a[1]*scaling))
+        max_val = np.max(array)
         for i in range(a[0]):
             for j in range(a[1]):
-               array_scaled[i*scaling:(i*scaling)+scaling,j*scaling:(j*scaling)+scaling] = (array[i][j]/4095)
+               array_scaled[i*scaling:(i*scaling)+scaling, j*scaling:(j*scaling)+scaling] = (array[i][j] / max_val)
         self.displayedImage = ((array_scaled-1)*-1)*255
         self.loadedImage = array_scaled
         self.__displayImage(self.displayedImage)
