@@ -11,10 +11,12 @@ class MainWindow():
     maskZoomed = []
     loadedImage = []
     displayedImage = []
+    displayedImageCopy = []
     listboxCount = 0
     errMsg = ''
     def __init__(self, window):
         window.title('Labe-Kinter')
+        self.master = window
         self.sideFrame = tk.Frame(window)
         self.sideFrame.grid(row = 0,column = 1, sticky = 'n')     
         
@@ -49,15 +51,26 @@ class MainWindow():
         self.scroll1 = tk.Scrollbar(window, orient = 'horizontal').grid(columnspan = 2, sticky = 'we')
 
     def __addRegion(self):
-        print('adding region')
+        print('Adding Region')
         print('listbox count is', self.listboxCount)
+        self.displayedImageCopy.append(self.displayedImage*1)
         self.listboxCount = self.listboxCount + 1
         self.listbox.insert(self.listboxCount, 'Region ' + str(self.listboxCount))
-        self.maskZoomed.append(np.zeros((560,560)))
-    
+        self.maskZoomed.append(np.zeros((560, 560)))
+
     def __removeRegion(self):
         print('removing region')
-    
+        try:
+            print(len(self.displayedImageCopy))
+            self.displayedImage = self.displayedImageCopy[self.listboxCount-1]
+            self.displayedImageCopy.pop()
+            self.__displayImage(self.displayedImage)
+            self.maskZoomed.pop()
+            self.listbox.delete(self.listboxCount - 1)
+            self.listboxCount = self.listboxCount - 1
+        except Exception as ex:
+            print(str(ex))
+
     def __openImage(self):
         filePath = filedialog.askopenfilename(initialdir = "/", title = 'Select a file')
         if filePath:
@@ -80,7 +93,7 @@ class MainWindow():
         np.save(fileName, self.mask)
             
     def __loadImage(self, filePath):
-        try :
+        try:
             array = np.load(filePath)
         except:
             array = np.zeros((56, 56))
@@ -110,11 +123,11 @@ class MainWindow():
                     else:
                         hitCount.append(1)
                 if max(hitCount) == 0:
-                    self.maskZoomed[self.listboxCount-1][sy:(sy+10),sx:(sx+10)] = 1
-                    self.displayedImage[sy:(sy+10),sx:(sx+10)] = 255
+                    self.maskZoomed[self.listboxCount-1][sy:(sy+10), sx:(sx+10)] = 1
+                    self.displayedImage[sy:(sy+10), sx:(sx+10)] = 255
             else:
                 self.maskZoomed[self.listboxCount-1][sy:(sy+10),sx:(sx+10)] = 1
-                self.displayedImage[sy:(sy+10),sx:(sx+10)] = 255
+                self.displayedImage[sy:(sy+10), sx:(sx+10)] = 255
             self.__displayImage(self.displayedImage)
         else:
             self.errMsg = messagebox.showerror("Error!", "No region added")
