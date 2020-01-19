@@ -36,7 +36,7 @@ class MainWindow():
         
         self.canvas = tk.Canvas(window, width=560,height=560, background = 'white')
         self.canvas.grid(row = 0, column = 0)
-        self.img = ImageTk.PhotoImage(image=Image.fromarray(np.random.randint(low = 0, high = 255,size = (560,560))))
+        self.img = ImageTk.PhotoImage(image=Image.fromarray(np.random.randint(low = 0, high = 255,size = (560,560)).astype(np.uint8)))
         self.imgOnCanvas = self.canvas.create_image(0, 0, anchor = 'nw' ,image = self.img)
         self.canvas.bind('<B1-Motion>',self.__motion)
         self.listbox = tk.Listbox(self.sideFrame, height = 20)
