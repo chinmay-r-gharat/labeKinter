@@ -84,7 +84,7 @@ class MainWindow():
             for i in range(self.listboxCount):
                 print('adding the masks')
                 self.maskFinal = self.maskFinal + (self.maskZoomed[i]*self.loadedImage)*(i+1)
-        np.save('full_file', self.maskFinal)
+        #np.save('full_file', self.maskFinal)
         scaling = 10        
         a = self.mask.shape        
         for i in range(a[0]):
