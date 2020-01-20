@@ -3,6 +3,8 @@ from tkinter import filedialog, messagebox
 import numpy as np
 from PIL import Image, ImageTk
 from math import floor
+# import matplotlib.pyplot as plt ##
+
 
 class MainWindow():
     imgl = []
@@ -14,7 +16,16 @@ class MainWindow():
     displayedImageCopy = []
     listboxCount = 0
     errMsg = ''
+    monoChrome = np.zeros((560,560))
+    contourImage = np.ones((560,560))
+
+
     def __init__(self, window):
+        self.p1 = tk.IntVar()
+        self.p2 = tk.IntVar()
+        self.p3 = tk.IntVar()
+
+
         window.title('Labe-Kinter')
         self.master = window
         self.sideFrame = tk.Frame(window)
@@ -45,6 +56,10 @@ class MainWindow():
         self.button2 = tk.Button(self.sideFrame, text = 'Remove region', fg ='red', command = self.__removeRegion).grid(row = 2, column = 0, sticky = 'we')
         self.button3 = tk.Button(self.sideFrame, text = 'Load image', fg ='blue', command = self.__openImage).grid(row = 3, column = 0, sticky = 'we')
         self.button4 = tk.Button(self.sideFrame, text = 'Save image', fg ='blue', command = self.__saveImage).grid(row = 4, column = 0, sticky = 'we')
+        self.check1 = tk.Checkbutton(self.sideFrame, text = 'Original image', variable = self.p1, command = self.__showOrignal).grid(row = 5, column = 0, sticky = 'w')
+        self.check2 = tk.Checkbutton(self.sideFrame, text = 'Monochrome', variable = self.p2, command = self.__showMonochrome).grid(row = 6, column = 0, sticky = 'w')
+        self.check3 = tk.Checkbutton(self.sideFrame, text = 'Contour', variable = self.p3, command = self.__showContour).grid(row = 7, column = 0, sticky = 'w')
+        self.scroll1 = tk.Scrollbar(window, orient = 'horizontal').grid(columnspan = 2, sticky = 'we')
         self.check1 = tk.Checkbutton(self.sideFrame, text = 'Original image').grid(row = 5, column = 0, sticky = 'w')
         self.check2 = tk.Checkbutton(self.sideFrame, text = 'Monochrome').grid(row = 6, column = 0, sticky = 'w')
         self.check3 = tk.Checkbutton(self.sideFrame, text = 'Contour').grid(row = 7, column = 0, sticky = 'w')
@@ -109,6 +124,9 @@ class MainWindow():
     def __loadImage(self, filePath):
         try:
             array = np.load(filePath)
+            self.p1.set(1)
+            self.p2.set(0)
+            self.p3.set(0)
         except:
             array = np.zeros((56, 56))
         scaling = 10
@@ -125,6 +143,9 @@ class MainWindow():
     def __motion(self,event):
         print("Mouse position: (%s %s)" % (event.x, event.y)) 
         if self.listboxCount > 0:
+            self.p1.set(1)
+            self.p2.set(0)
+            self.p3.set(0)
             x = event.x
             y = event.y
             sx = floor(x/10)*10
@@ -144,12 +165,38 @@ class MainWindow():
                 self.displayedImage[sy:(sy+10), sx:(sx+10)] = 255
             self.__displayImage(self.displayedImage)
         else:
-            self.errMsg = messagebox.showerror("Error!", "No region added")
+            if self.p2 == 1:
+                self.errMsg = messagebox.showerror("Error!", "Go to orignal image ")
+            else:
+                self.errMsg = messagebox.showerror("Error!", "No region added")
     
     def __displayImage(self, image):
         self.imgl = ImageTk.PhotoImage(image=Image.fromarray(image))
         self.canvas.itemconfig(self.imgOnCanvas, image = self.imgl)
-        
+
+
+    def __showMonochrome(self):
+        self.p1.set(0)
+        self.p3.set(0)
+        #self.monoChrome = self.displayedImage[self.displayedImage > 10] = 255
+        # print('max value',self.displayedImage.max())
+        # print('min value',self.displayedImage.min())
+        self.monoChrome = np.where(self.displayedImage < 255, 0.0, 255)
+        self.__displayImage(self.monoChrome)
+
+    def __showOrignal(self):
+        self.p2.set(0)
+        self.p3.set(0)
+        self.__displayImage(self.displayedImage)
+
+    def __showContour(self):
+        self.p1.set(0)
+        self.p2.set(0)
+        self.__displayImage(self.contourImage)
+
+
+
+
 root = tk.Tk()
 mw = MainWindow(root)
 maskFinal = mw.maskFinal                
