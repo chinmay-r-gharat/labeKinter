@@ -3,8 +3,6 @@ from tkinter import filedialog, messagebox
 import numpy as np
 from PIL import Image, ImageTk
 from math import floor
-# import matplotlib.pyplot as plt ##
-
 
 class MainWindow():
     imgl = []
@@ -13,24 +11,18 @@ class MainWindow():
     maskZoomed = []
     loadedImage = []
     displayedImage = []
+    monoChrome = np.zeros((560, 560))
+    contourImage = np.ones((560, 560))
     displayedImageCopy = []
     listboxCount = 0
     errMsg = ''
-    monoChrome = np.zeros((560,560))
-    contourImage = np.ones((560,560))
-
 
     def __init__(self, window):
-        self.p1 = tk.IntVar()
-        self.p2 = tk.IntVar()
-        self.p3 = tk.IntVar()
-
-
         window.title('Labe-Kinter')
         self.master = window
         self.sideFrame = tk.Frame(window)
-        self.sideFrame.grid(row = 0,column = 1, sticky = 'n')     
-        
+        self.sideFrame.grid(row = 0,column = 1, sticky = 'n')
+
         self.menubar = tk.Menu(window)
         self.filemenu = tk.Menu(self.menubar)
         self.editmenu = tk.Menu(self.menubar)
@@ -44,7 +36,10 @@ class MainWindow():
         self.menubar.add_cascade(label = 'Settings', menu = self.settingsmenu)
         self.menubar.add_cascade(label = 'Help', menu = self.helpmenu)
         window.config(menu=self.menubar)
-        
+
+        self.p1 = tk.IntVar()
+        self.p2 = tk.IntVar()
+        self.p3 = tk.IntVar()
         self.canvas = tk.Canvas(window, width=560,height=560, background = 'white')
         self.canvas.grid(row = 0, column = 0)
         self.img = ImageTk.PhotoImage(image=Image.fromarray(np.random.randint(low = 0, high = 255,size = (560,560)).astype(np.uint8)))
@@ -59,11 +54,6 @@ class MainWindow():
         self.check1 = tk.Checkbutton(self.sideFrame, text = 'Original image', variable = self.p1, command = self.__showOrignal).grid(row = 5, column = 0, sticky = 'w')
         self.check2 = tk.Checkbutton(self.sideFrame, text = 'Monochrome', variable = self.p2, command = self.__showMonochrome).grid(row = 6, column = 0, sticky = 'w')
         self.check3 = tk.Checkbutton(self.sideFrame, text = 'Contour', variable = self.p3, command = self.__showContour).grid(row = 7, column = 0, sticky = 'w')
-        self.scroll1 = tk.Scrollbar(window, orient = 'horizontal').grid(columnspan = 2, sticky = 'we')
-        self.check1 = tk.Checkbutton(self.sideFrame, text = 'Original image').grid(row = 5, column = 0, sticky = 'w')
-        self.check2 = tk.Checkbutton(self.sideFrame, text = 'Monochrome').grid(row = 6, column = 0, sticky = 'w')
-        self.check3 = tk.Checkbutton(self.sideFrame, text = 'Contour').grid(row = 7, column = 0, sticky = 'w')
-        #self.scroll1 = tk.Scrollbar(window, orient = 'horizontal').grid(columnspan = 2, sticky = 'we')
 
     def __setDefault(self):
         self.imgl = []
@@ -72,6 +62,8 @@ class MainWindow():
         self.maskZoomed = []
         self.loadedImage = []
         self.displayedImage = []
+        self.monoChrome = np.zeros((560, 560))
+        self.contourImage = np.ones((560, 560))
         self.displayedImageCopy = []
         self.listboxCount = 0
         self.errMsg = ''
@@ -111,7 +103,6 @@ class MainWindow():
             for i in range(self.listboxCount):
                 print('adding the masks')
                 self.maskFinal = self.maskFinal + (self.maskZoomed[i]*self.loadedImage)*(i+1)
-        #np.save('full_file', self.maskFinal)
         scaling = 10        
         a = self.mask.shape        
         for i in range(a[0]):
@@ -178,9 +169,6 @@ class MainWindow():
     def __showMonochrome(self):
         self.p1.set(0)
         self.p3.set(0)
-        #self.monoChrome = self.displayedImage[self.displayedImage > 10] = 255
-        # print('max value',self.displayedImage.max())
-        # print('min value',self.displayedImage.min())
         self.monoChrome = np.where(self.displayedImage < 255, 0.0, 255)
         self.__displayImage(self.monoChrome)
 
@@ -193,9 +181,6 @@ class MainWindow():
         self.p1.set(0)
         self.p2.set(0)
         self.__displayImage(self.contourImage)
-
-
-
 
 root = tk.Tk()
 mw = MainWindow(root)
