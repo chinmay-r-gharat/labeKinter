@@ -48,7 +48,19 @@ class MainWindow():
         self.check1 = tk.Checkbutton(self.sideFrame, text = 'Original image').grid(row = 5, column = 0, sticky = 'w')
         self.check2 = tk.Checkbutton(self.sideFrame, text = 'Monochrome').grid(row = 6, column = 0, sticky = 'w')
         self.check3 = tk.Checkbutton(self.sideFrame, text = 'Contour').grid(row = 7, column = 0, sticky = 'w')
-        self.scroll1 = tk.Scrollbar(window, orient = 'horizontal').grid(columnspan = 2, sticky = 'we')
+        #self.scroll1 = tk.Scrollbar(window, orient = 'horizontal').grid(columnspan = 2, sticky = 'we')
+
+    def __setDefault(self):
+        self.imgl = []
+        self.mask = np.zeros((56, 56))
+        self.maskFinal = np.zeros((560, 560))
+        self.maskZoomed = []
+        self.loadedImage = []
+        self.displayedImage = []
+        self.displayedImageCopy = []
+        self.listboxCount = 0
+        self.errMsg = ''
+        self.__init__(self.master)
 
     def __addRegion(self):
         if self.loadedImage != []:
@@ -92,7 +104,8 @@ class MainWindow():
                 slices = self.maskFinal[i*scaling:(i*scaling)+scaling,j*scaling:(j*scaling)+scaling]
                 self.mask[i][j] = slices.max()
         np.save(fileName, self.mask)
-            
+        self.__setDefault()
+
     def __loadImage(self, filePath):
         try:
             array = np.load(filePath)
