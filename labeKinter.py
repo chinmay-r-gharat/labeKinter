@@ -169,17 +169,23 @@ class MainWindow():
     def __showMonochrome(self):
         self.p1.set(0)
         self.p3.set(0)
+        if self.p2.get() == 0:
+            self.p2.set(1)
         self.monoChrome = np.where(self.displayedImage < 255, 0.0, 255)
         self.__displayImage(self.monoChrome)
 
     def __showOrignal(self):
         self.p2.set(0)
         self.p3.set(0)
+        if self.p1.get() == 0:
+            self.p1.set(1)
         self.__displayImage(self.displayedImage)
 
     def __showContour(self):
         self.p1.set(0)
         self.p2.set(0)
+        if self.p3.get() == 0:
+            self.p3.set(1)
         self.__displayImage(self.contourImage)
 
 root = tk.Tk()
