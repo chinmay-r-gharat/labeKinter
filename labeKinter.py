@@ -193,9 +193,8 @@ class MainWindow():
         y = np.linspace(0, 56, 56)
         xnew = np.linspace(0, 56, 560)
         ynew = np.linspace(0, 56, 560)
-        #a = np.load('bip_arrs_2.npy')
         f = interp2d(x, y, self.array, kind='cubic')
-        self.contourImage = f(xnew,ynew)
+        self.contourImage = f(xnew, ynew)
         self.contourImage = self.contourImage/np.max(self.contourImage)
         self.contourImage = ((self.contourImage - 1) * -1) * 255
         self.contourImage = np.where(self.contourImage < 32, 0, self.contourImage)
