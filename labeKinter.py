@@ -3,6 +3,7 @@ from tkinter import filedialog, messagebox
 import numpy as np
 from PIL import Image, ImageTk
 from math import floor
+from scipy.interpolate import interp2d
 
 class MainWindow():
     imgl = []
@@ -16,7 +17,7 @@ class MainWindow():
     displayedImageCopy = []
     listboxCount = 0
     errMsg = ''
-
+    array = []
     def __init__(self, window):
         window.title('Labe-Kinter')
         self.master = window
@@ -68,6 +69,7 @@ class MainWindow():
         self.listboxCount = 0
         self.errMsg = ''
         self.__init__(self.master)
+        self.array = []
 
     def __addRegion(self):
         if self.loadedImage != []:
@@ -114,19 +116,19 @@ class MainWindow():
 
     def __loadImage(self, filePath):
         try:
-            array = np.load(filePath)
+            self.array = np.load(filePath)
             self.p1.set(1)
             self.p2.set(0)
             self.p3.set(0)
         except:
-            array = np.zeros((56, 56))
+            self.array = np.zeros((56, 56))
         scaling = 10
-        a = array.shape
+        a = self.array.shape
         array_scaled = np.zeros((a[0]*scaling, a[1]*scaling))
-        max_val = np.max(array)
+        max_val = np.max(self.array)
         for i in range(a[0]):
             for j in range(a[1]):
-               array_scaled[i*scaling:(i*scaling)+scaling, j*scaling:(j*scaling)+scaling] = (array[i][j] / max_val)
+               array_scaled[i*scaling:(i*scaling)+scaling, j*scaling:(j*scaling)+scaling] = (self.array[i][j] / max_val)
         self.displayedImage = ((array_scaled-1)*-1)*255
         self.loadedImage = array_scaled
         self.__displayImage(self.displayedImage)
@@ -152,12 +154,12 @@ class MainWindow():
                     self.maskZoomed[self.listboxCount-1][sy:(sy+10), sx:(sx+10)] = 1
                     self.displayedImage[sy:(sy+10), sx:(sx+10)] = 255
             else:
-                self.maskZoomed[self.listboxCount-1][sy:(sy+10),sx:(sx+10)] = 1
+                self.maskZoomed[self.listboxCount-1][sy:(sy+10), sx:(sx+10)] = 1
                 self.displayedImage[sy:(sy+10), sx:(sx+10)] = 255
             self.__displayImage(self.displayedImage)
         else:
             if self.p2 == 1:
-                self.errMsg = messagebox.showerror("Error!", "Go to orignal image ")
+                self.errMsg = messagebox.showerror("Error!", "Go to original image ")
             else:
                 self.errMsg = messagebox.showerror("Error!", "No region added")
     
@@ -186,6 +188,24 @@ class MainWindow():
         self.p2.set(0)
         if self.p3.get() == 0:
             self.p3.set(1)
+
+        x = np.linspace(0, 56, 56)
+        y = np.linspace(0, 56, 56)
+        xnew = np.linspace(0, 56, 560)
+        ynew = np.linspace(0, 56, 560)
+        #a = np.load('bip_arrs_2.npy')
+        f = interp2d(x, y, self.array, kind='cubic')
+        self.contourImage = f(xnew,ynew)
+        self.contourImage = self.contourImage/np.max(self.contourImage)
+        self.contourImage = ((self.contourImage - 1) * -1) * 255
+        self.contourImage = np.where(self.contourImage < 32, 0, self.contourImage)
+        self.contourImage = np.where((self.contourImage > 32) & (self.contourImage < 64), 32, self.contourImage)
+        self.contourImage = np.where((self.contourImage > 64) & (self.contourImage < 96), 64, self.contourImage)
+        self.contourImage = np.where((self.contourImage > 96) & (self.contourImage < 128), 96, self.contourImage)
+        self.contourImage = np.where((self.contourImage > 128) & (self.contourImage < 160), 128, self.contourImage)
+        self.contourImage = np.where((self.contourImage > 160) & (self.contourImage < 192), 160, self.contourImage)
+        self.contourImage = np.where((self.contourImage > 192) & (self.contourImage < 224), 192, self.contourImage)
+        self.contourImage = np.where((self.contourImage > 224), 255, self.contourImage)
         self.__displayImage(self.contourImage)
 
 root = tk.Tk()
