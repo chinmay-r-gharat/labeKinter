@@ -14,10 +14,12 @@ class MainWindow():
     displayedImage = []
     monoChrome = np.zeros((560, 560))
     contourImage = np.ones((560, 560))
+    contourImageRGB = np.zeros((560, 560, 3))
     displayedImageCopy = []
     listboxCount = 0
     errMsg = ''
     array = []
+    contourCalcFlag = False
     def __init__(self, window):
         window.title('Labe-Kinter')
         self.master = window
@@ -33,7 +35,10 @@ class MainWindow():
         self.filemenu.add_command(label = 'Open')
         self.filemenu.add_command(label = 'Save')
         self.menubar.add_cascade(label = 'Edit', menu = self.editmenu)
-        self.editmenu.add_command(label = 'Mode')
+        self.modemenu = tk.Menu(self.editmenu)
+        self.editmenu.add_cascade(label = 'Mode', menu = self.modemenu)
+        self.modemenu.add_command(label = 'Paint')
+        self.modemenu.add_command(label = 'Select')
         self.menubar.add_cascade(label = 'Settings', menu = self.settingsmenu)
         self.menubar.add_cascade(label = 'Help', menu = self.helpmenu)
         window.config(menu=self.menubar)
@@ -41,6 +46,7 @@ class MainWindow():
         self.p1 = tk.IntVar()
         self.p2 = tk.IntVar()
         self.p3 = tk.IntVar()
+        self.p4 = tk.IntVar()
         self.canvas = tk.Canvas(window, width=560,height=560, background = 'white')
         self.canvas.grid(row = 0, column = 0)
         self.img = ImageTk.PhotoImage(image=Image.fromarray(np.random.randint(low = 0, high = 255,size = (560,560)).astype(np.uint8)))
@@ -55,6 +61,8 @@ class MainWindow():
         self.check1 = tk.Checkbutton(self.sideFrame, text = 'Original image', variable = self.p1, command = self.__showOrignal).grid(row = 5, column = 0, sticky = 'w')
         self.check2 = tk.Checkbutton(self.sideFrame, text = 'Monochrome', variable = self.p2, command = self.__showMonochrome).grid(row = 6, column = 0, sticky = 'w')
         self.check3 = tk.Checkbutton(self.sideFrame, text = 'Contour', variable = self.p3, command = self.__showContour).grid(row = 7, column = 0, sticky = 'w')
+        self.check4 = tk.Checkbutton(self.sideFrame, text = 'Label', variable = self.p4, command = self.__showLabelled).grid(row = 8, column = 0, sticky = 'w')
+        self.contourCalcFlag = False
 
     def __setDefault(self):
         self.imgl = []
@@ -65,13 +73,19 @@ class MainWindow():
         self.displayedImage = []
         self.monoChrome = np.zeros((560, 560))
         self.contourImage = np.ones((560, 560))
+        self.contourImageRGB = np.zeros((560, 560, 3))
         self.displayedImageCopy = []
         self.listboxCount = 0
         self.errMsg = ''
         self.__init__(self.master)
         self.array = []
+        self.contourCalcFlag = False
 
     def __addRegion(self):
+        self.p1.set(1)
+        self.p2.set(0)
+        self.p3.set(0)
+        self.p4.set(0)
         if self.loadedImage != []:
             self.displayedImageCopy.append(self.displayedImage*1)
             self.listboxCount = self.listboxCount + 1
@@ -81,6 +95,10 @@ class MainWindow():
             self.errMsg = messagebox.showerror("Error!", "No image loaded")
 
     def __removeRegion(self):
+        self.p1.set(1)
+        self.p2.set(0)
+        self.p3.set(0)
+        self.p4.set(0)
         print('removing region')
         try:
             print(len(self.displayedImageCopy))
@@ -97,29 +115,35 @@ class MainWindow():
         filePath = filedialog.askopenfilename(initialdir = "/", title = 'Select a file')
         if filePath:
             self.__loadImage(filePath)
-    
+
+    def __renderLabelData(self):
+        self.loadedImage = np.where(self.loadedImage > 0, 1, 0)
+        for i in range(self.listboxCount):
+            print('adding the masks')
+            self.maskFinal = self.maskFinal + (self.maskZoomed[i] * self.loadedImage) * (i + 1)
+        scaling = 10
+        a = self.mask.shape
+        for i in range(a[0]):
+            for j in range(a[1]):
+                slices = self.maskFinal[i * scaling:(i * scaling) + scaling, j * scaling:(j * scaling) + scaling]
+                self.mask[i][j] = slices.max()
+        return self.maskFinal
+
     def __saveImage(self):
         fileName = filedialog.asksaveasfilename(defaultextension='.npy')
-        self.loadedImage = np.where(self.loadedImage > 0, 1, 0)
-        if fileName:
-            for i in range(self.listboxCount):
-                print('adding the masks')
-                self.maskFinal = self.maskFinal + (self.maskZoomed[i]*self.loadedImage)*(i+1)
-            scaling = 10
-            a = self.mask.shape
-            for i in range(a[0]):
-                for j in range(a[1]):
-                    slices = self.maskFinal[i * scaling:(i * scaling) + scaling, j * scaling:(j * scaling) + scaling]
-                    self.mask[i][j] = slices.max()
+        if filename:
+            self.__renderLabelData()
             np.save(fileName, self.mask)
             self.__setDefault()
 
     def __loadImage(self, filePath):
+        self.contourCalcFlag = False
         try:
             self.array = np.load(filePath)
             self.p1.set(1)
             self.p2.set(0)
             self.p3.set(0)
+            self.p4.set(0)
         except:
             self.array = np.zeros((56, 56))
         scaling = 10
@@ -139,6 +163,7 @@ class MainWindow():
             self.p1.set(1)
             self.p2.set(0)
             self.p3.set(0)
+            self.p4.set(0)
             x = event.x
             y = event.y
             sx = floor(x/10)*10
@@ -174,6 +199,7 @@ class MainWindow():
     def __showMonochrome(self):
         self.p1.set(0)
         self.p3.set(0)
+        self.p4.set(0)
         if self.p2.get() == 0:
             self.p2.set(1)
         self.monoChrome = np.where(self.displayedImage < 255, 0.0, 255)
@@ -182,23 +208,19 @@ class MainWindow():
     def __showOrignal(self):
         self.p2.set(0)
         self.p3.set(0)
+        self.p4.set(0)
         if self.p1.get() == 0:
             self.p1.set(1)
         self.__displayImage(self.displayedImage)
 
-    def __showContour(self):
-        self.p1.set(0)
-        self.p2.set(0)
-        if self.p3.get() == 0:
-            self.p3.set(1)
-
+    def __calculateContour(self):
         x = np.linspace(0, 56, 56)
         y = np.linspace(0, 56, 56)
         xnew = np.linspace(0, 56, 560)
         ynew = np.linspace(0, 56, 560)
         f = interp2d(x, y, self.array, kind='quintic')
         self.contourImage = f(xnew, ynew)
-        self.contourImage = self.contourImage/np.max(self.contourImage)
+        self.contourImage = self.contourImage / np.max(self.contourImage)
         self.contourImage = ((self.contourImage - 1) * -1) * 255
         self.contourImage = np.where(self.contourImage < 32, 0, self.contourImage)
         self.contourImage = np.where((self.contourImage > 32) & (self.contourImage < 64), 32, self.contourImage)
@@ -254,7 +276,45 @@ class MainWindow():
 
         contourLocal = np.asarray(contourLocal)
         contourLocal = np.rollaxis(contourLocal, 0, 3)
-        self.__displayImage(contourLocal)
+        self.contourCalcFlag = True
+        return contourLocal
+
+    def __showContour(self):
+        self.p1.set(0)
+        self.p2.set(0)
+        self.p4.set(0)
+        if self.p3.get() == 0:
+            self.p3.set(1)
+
+        if self.contourCalcFlag == False:
+            self.contourImageRGB = self.__calculateContour()
+        self.__displayImage(self.contourImageRGB)
+
+    def __showLabelled(self):
+        self.p1.set(0)
+        self.p2.set(0)
+        self.p3.set(0)
+        if self.p4.get() == 0:
+            self.p4.set(1)
+        rChannel = self.__renderLabelData()
+        gChannel = self.__renderLabelData()
+        bChannel = self.__renderLabelData()
+        labeledImage = []
+        for i in range(self.listboxCount):
+            rChannel = np.where(rChannel == i+1, np.random.randint(40, 255), rChannel)
+            gChannel = np.where(gChannel == i+1, np.random.randint(40, 255), gChannel)
+            bChannel = np.where(bChannel == i+1, np.random.randint(40, 255), bChannel)
+        rChannel = np.where(rChannel == 0, 255, rChannel)
+        gChannel = np.where(gChannel == 0, 255, gChannel)
+        bChannel = np.where(bChannel == 0, 255, bChannel)
+        labeledImage.append(rChannel)
+        labeledImage.append(gChannel)
+        labeledImage.append(bChannel)
+        labeledImage = np.asarray(labeledImage)
+        labeledImage = np.rollaxis(labeledImage, 0, 3)
+        self.__displayImage(labeledImage)
+        self.maskFinal = np.zeros((560, 560))
+        self.mask = np.zeros((56, 56))
 
 root = tk.Tk()
 mw = MainWindow(root)
