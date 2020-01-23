@@ -164,8 +164,11 @@ class MainWindow():
                 self.errMsg = messagebox.showerror("Error!", "No region added")
     
     def __displayImage(self, image):
-        self.imgl = ImageTk.PhotoImage(image=Image.fromarray(image))
-        self.canvas.itemconfig(self.imgOnCanvas, image = self.imgl)
+        if image.shape == (560, 560, 3):
+            self.imgl = ImageTk.PhotoImage(image=Image.fromarray(image.astype('uint8'), 'RGB'))
+        else:
+            self.imgl = ImageTk.PhotoImage(image=Image.fromarray(image))
+        self.canvas.itemconfig(self.imgOnCanvas, image=self.imgl)
 
 
     def __showMonochrome(self):
@@ -193,7 +196,7 @@ class MainWindow():
         y = np.linspace(0, 56, 56)
         xnew = np.linspace(0, 56, 560)
         ynew = np.linspace(0, 56, 560)
-        f = interp2d(x, y, self.array, kind='cubic')
+        f = interp2d(x, y, self.array, kind='quintic')
         self.contourImage = f(xnew, ynew)
         self.contourImage = self.contourImage/np.max(self.contourImage)
         self.contourImage = ((self.contourImage - 1) * -1) * 255
@@ -204,8 +207,54 @@ class MainWindow():
         self.contourImage = np.where((self.contourImage > 128) & (self.contourImage < 160), 128, self.contourImage)
         self.contourImage = np.where((self.contourImage > 160) & (self.contourImage < 192), 160, self.contourImage)
         self.contourImage = np.where((self.contourImage > 192) & (self.contourImage < 224), 192, self.contourImage)
-        self.contourImage = np.where((self.contourImage > 224), 255, self.contourImage)
-        self.__displayImage(self.contourImage)
+        self.contourImage = np.where((self.contourImage > 224) & (self.contourImage < 243), 224, self.contourImage)
+        self.contourImage = np.where((self.contourImage > 243), 255, self.contourImage)
+        self.contourImage = self.contourImage
+        contourLocal = []
+
+        redChannel = self.contourImage
+        greenChannel = self.contourImage
+        blueChannel = self.contourImage
+
+        redChannel = np.where(self.contourImage == 0, 78, redChannel)
+        greenChannel = np.where(self.contourImage == 0, 0, greenChannel)
+        blueChannel = np.where(self.contourImage == 0, 0, blueChannel)
+
+        redChannel = np.where(self.contourImage == 32, 180, redChannel)
+        greenChannel = np.where(self.contourImage == 32, 0, greenChannel)
+        blueChannel = np.where(self.contourImage == 32, 0, blueChannel)
+
+        redChannel = np.where(self.contourImage == 64, 255, redChannel)
+        greenChannel = np.where(self.contourImage == 64, 0, greenChannel)
+        blueChannel = np.where(self.contourImage == 64, 0, blueChannel)
+
+        redChannel = np.where(self.contourImage == 96, 0, redChannel)
+        greenChannel = np.where(self.contourImage == 96, 150, greenChannel)
+        blueChannel = np.where(self.contourImage == 96, 0, blueChannel)
+
+        redChannel = np.where(self.contourImage == 128, 0, redChannel)
+        greenChannel = np.where(self.contourImage == 128, 180, greenChannel)
+        blueChannel = np.where(self.contourImage == 128, 0, blueChannel)
+
+        redChannel = np.where(self.contourImage == 160, 0, redChannel)
+        greenChannel = np.where(self.contourImage == 160, 0, greenChannel)
+        blueChannel = np.where(self.contourImage == 160, 150, blueChannel)
+
+        redChannel = np.where(self.contourImage == 192, 0, redChannel)
+        greenChannel = np.where(self.contourImage == 192, 0, greenChannel)
+        blueChannel = np.where(self.contourImage == 192, 255, blueChannel)
+
+        redChannel = np.where(self.contourImage == 224, 128, redChannel)
+        greenChannel = np.where(self.contourImage == 224, 191, greenChannel)
+        blueChannel = np.where(self.contourImage == 224, 255, blueChannel)
+
+        contourLocal.append(redChannel)
+        contourLocal.append(greenChannel)
+        contourLocal.append(blueChannel)
+
+        contourLocal = np.asarray(contourLocal)
+        contourLocal = np.rollaxis(contourLocal, 0, 3)
+        self.__displayImage(contourLocal)
 
 root = tk.Tk()
 mw = MainWindow(root)
