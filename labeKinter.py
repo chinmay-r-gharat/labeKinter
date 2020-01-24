@@ -22,10 +22,16 @@ class MainWindow():
     contourCalcFlag = False
     def __init__(self, window):
         window.title('Labe-Kinter')
+        img = ImageTk.PhotoImage(file='logo.ico')
+        window.tk.call('wm', 'iconphoto', window._w, img)
+        try:
+            window.iconbitmap(r'logo.ico')
+        except Exception as ex:
+            print(str(ex))
+            pass
         self.master = window
         self.sideFrame = tk.Frame(window)
         self.sideFrame.grid(row = 0,column = 1, sticky = 'n')
-
         self.menubar = tk.Menu(window)
         self.filemenu = tk.Menu(self.menubar)
         self.editmenu = tk.Menu(self.menubar)
@@ -116,23 +122,25 @@ class MainWindow():
         if filePath:
             self.__loadImage(filePath)
 
-    def __renderLabelData(self):
+    def __renderLabelData(self, __save__):
         self.loadedImage = np.where(self.loadedImage > 0, 1, 0)
         for i in range(self.listboxCount):
             print('adding the masks')
             self.maskFinal = self.maskFinal + (self.maskZoomed[i] * self.loadedImage) * (i + 1)
-        scaling = 10
-        a = self.mask.shape
-        for i in range(a[0]):
-            for j in range(a[1]):
-                slices = self.maskFinal[i * scaling:(i * scaling) + scaling, j * scaling:(j * scaling) + scaling]
-                self.mask[i][j] = slices.max()
+        if __save__:
+            scaling = 10
+            a = self.mask.shape
+            for i in range(a[0]):
+                for j in range(a[1]):
+                    slices = self.maskFinal[i * scaling:(i * scaling) + scaling, j * scaling:(j * scaling) + scaling]
+                    self.mask[i][j] = slices.max()
+
         return self.maskFinal
 
     def __saveImage(self):
         fileName = filedialog.asksaveasfilename(defaultextension='.npy')
-        if filename:
-            self.__renderLabelData()
+        if fileName:
+            self.__renderLabelData(True)
             np.save(fileName, self.mask)
             self.__setDefault()
 
@@ -157,8 +165,7 @@ class MainWindow():
         self.loadedImage = array_scaled
         self.__displayImage(self.displayedImage)
     
-    def __motion(self,event):
-        print("Mouse position: (%s %s)" % (event.x, event.y)) 
+    def __motion(self, sevent):
         if self.listboxCount > 0:
             self.p1.set(1)
             self.p2.set(0)
@@ -296,9 +303,9 @@ class MainWindow():
         self.p3.set(0)
         if self.p4.get() == 0:
             self.p4.set(1)
-        rChannel = self.__renderLabelData()
-        gChannel = self.__renderLabelData()
-        bChannel = self.__renderLabelData()
+        rChannel = self.__renderLabelData(False)
+        gChannel = rChannel*1
+        bChannel = rChannel*1
         labeledImage = []
         for i in range(self.listboxCount):
             rChannel = np.where(rChannel == i+1, np.random.randint(40, 255), rChannel)
