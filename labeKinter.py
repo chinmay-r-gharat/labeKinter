@@ -165,7 +165,7 @@ class MainWindow():
         self.loadedImage = array_scaled
         self.__displayImage(self.displayedImage)
     
-    def __motion(self, sevent):
+    def __motion(self, event):
         if self.listboxCount > 0:
             self.p1.set(1)
             self.p2.set(0)
