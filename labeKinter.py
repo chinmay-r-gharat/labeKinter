@@ -22,12 +22,11 @@ class MainWindow():
     contourCalcFlag = False
     def __init__(self, window):
         window.title('Labe-Kinter')
-        img = ImageTk.PhotoImage(file='logo.ico')
-        window.tk.call('wm', 'iconphoto', window._w, img)
         try:
+            img = ImageTk.PhotoImage(file='logo.ico')
+            window.tk.call('wm', 'iconphoto', window._w, img)
             window.iconbitmap(r'logo.ico')
         except Exception as ex:
-            print(str(ex))
             pass
         self.master = window
         self.sideFrame = tk.Frame(window)
