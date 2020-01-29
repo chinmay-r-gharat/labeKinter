@@ -7,8 +7,8 @@ from scipy.interpolate import interp2d
 
 class MainWindow():
     imgl = []
-    mask = np.zeros((56,56))
-    maskFinal = np.zeros((560,560))
+    mask = np.zeros((56, 56))
+    maskFinal = np.zeros((560, 560))
     maskZoomed = []
     loadedImage = []
     displayedImage = []
@@ -20,6 +20,13 @@ class MainWindow():
     errMsg = ''
     array = []
     contourCalcFlag = False
+    selectionMode = 0
+    start_x = 0
+    start_y = 0
+    points = []
+    poly = []
+    polyRegionCount = 0
+
     def __init__(self, window):
         window.title('Labe-Kinter')
         try:
@@ -42,8 +49,8 @@ class MainWindow():
         self.menubar.add_cascade(label = 'Edit', menu = self.editmenu)
         self.modemenu = tk.Menu(self.editmenu)
         self.editmenu.add_cascade(label = 'Mode', menu = self.modemenu)
-        self.modemenu.add_command(label = 'Paint')
-        self.modemenu.add_command(label = 'Select')
+        self.modemenu.add_command(label = 'Paint', command = self.paint)
+        self.modemenu.add_command(label = 'Ninja', command = self.select)
         self.menubar.add_cascade(label = 'Settings', menu = self.settingsmenu)
         self.menubar.add_cascade(label = 'Help', menu = self.helpmenu)
         window.config(menu=self.menubar)
@@ -86,12 +93,93 @@ class MainWindow():
         self.array = []
         self.contourCalcFlag = False
 
+    def paint(self):
+        self.selectionMode = 0
+        self.canvas.unbind("<ButtonPress-1>")
+        self.canvas.unbind("<ButtonRelease-1>")
+        self.canvas.bind('<B1-Motion>', self.__motion)
+
+    def select(self):
+        self.selectionMode = 1
+        self.canvas.unbind('<B1-Motion>')
+        self.canvas.bind("<ButtonPress-1>", self.__addPoint)
+        self.canvas.bind("<ButtonRelease-1>", self.__createPoly)
+        self.master.bind("<space>", self.__seperatePoly)
+        self.canvas.bind("<Button-3>", self.__removePoint)
+
+    def __addPoint(self, event):
+        if self.listboxCount > 0:
+            self.p1.set(1)
+            self.p2.set(0)
+            self.p3.set(0)
+            self.p4.set(0)
+            self.start_x = self.canvas.canvasx(event.x)
+            self.start_y = self.canvas.canvasy(event.y)
+            self.points.append((self.start_x, self.start_y))
+        else:
+            self.errMsg = messagebox.showerror("Error!", "No region added")
+
+    def __removP(self, doNotCreate):
+        try:
+            self.canvas.delete(self.poly)
+            if doNotCreate:
+                self.points.pop()
+                self.poly = self.canvas.create_polygon(self.points, outline='red', width=2, fill='')
+            else:
+                self.points = []
+        except:
+            self.errMsg = messagebox.showerror("Error!", "No more points")
+
+    def __removePoint(self, event):
+        self.__removP(True)
+
+    def __createPoly(self, event):
+        if self.listboxCount > 0:
+            self.canvas.delete(self.poly)
+            self.poly = self.canvas.create_polygon(self.points, outline='red', width=2, fill='')
+        else:
+            self.errMsg = messagebox.showerror("Error!", "No region added")
+
+    def __seperatePoly(self, event):
+        self.polyRegionCount = self.polyRegionCount + 1
+        # print('printing points:', self.points)
+        self.__isInside(self.__findPoints(self.__findBoundingBox(self.points)))
+
+    def __findBoundingBox(self, points):
+        x = []
+        y = []
+        for i in points:
+            x.append(i[0])
+            y.append(i[1])
+        # self.canvas.create_polygon([(min(x),min(y)),(max(x),min(y)),(max(x),max(y)),(min(x),max(y))], outline='green', width=2, fill='')
+        # return (min(x),min(y)),(max(x),min(y)),(max(x),max(y)),(min(x),max(y))
+        return min(x), max(x), min(y), max(y)
+
+    def __findPoints(self, bbox):
+        print(bbox)
+        a = np.linspace(bbox[0],bbox[1],bbox[1]-bbox[0]+1, dtype=np.int16)
+        b = np.linspace(bbox[2],bbox[3],bbox[3]-bbox[2]+1, dtype=np.int16)
+        c, d = np.meshgrid(a, b)
+        c = c.flatten()
+        d = d.flatten()
+        points = []
+        for i in range(len(c)):
+            points.append((c[i], d[i]))
+        return points
+
+    def __isInside(self, points):
+        print(points)
+        return 1
+
     def __addRegion(self):
         self.p1.set(1)
         self.p2.set(0)
         self.p3.set(0)
         self.p4.set(0)
         if self.loadedImage != []:
+            if self.selectionMode == 1 and self.listboxCount >= 1:
+                self.canvas.delete(self.poly)
+                self.points = []
             self.displayedImageCopy.append(self.displayedImage*1)
             self.listboxCount = self.listboxCount + 1
             self.listbox.insert(self.listboxCount, 'Region ' + str(self.listboxCount))
@@ -104,7 +192,7 @@ class MainWindow():
         self.p2.set(0)
         self.p3.set(0)
         self.p4.set(0)
-        print('removing region')
+        self.__removP(False)
         try:
             print(len(self.displayedImageCopy))
             self.displayedImage = self.displayedImageCopy[self.listboxCount-1]
