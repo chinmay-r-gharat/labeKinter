@@ -142,8 +142,31 @@ class MainWindow():
 
     def __seperatePoly(self, event):
         self.polyRegionCount = self.polyRegionCount + 1
-        # print('printing points:', self.points)
-        self.__isInside(self.__findPoints(self.__findBoundingBox(self.points)))
+        points, cx, cy = self.__findPoints(self.__findBoundingBox(self.points))
+        artCoord = self.__getInsideCod(points, self.__isInside(points, cx, cy, self.__getEdge()))
+        self.__artificialMotion(artCoord)
+        self.canvas.delete(self.poly)
+        self.points = []
+
+    def __artificialMotion(self, coordList):
+        for cl in range(len(coordList)):
+            sx = floor(coordList[cl][0] / 10) * 10
+            sy = floor(coordList[cl][1] / 10) * 10
+            if self.listboxCount - 1 > 0:
+                hitCount = []
+                for i in range(self.listboxCount - 1):
+                    if self.maskZoomed[i][sy][sx] != 1:
+                        hitCount.append(0)
+                    else:
+                        hitCount.append(1)
+                if max(hitCount) == 0:
+                    self.maskZoomed[self.listboxCount - 1][sy:(sy + 10), sx:(sx + 10)] = 1
+                    self.displayedImage[sy:(sy + 10), sx:(sx + 10)] = 255
+            else:
+                self.maskZoomed[self.listboxCount - 1][sy:(sy + 10), sx:(sx + 10)] = 1
+                self.displayedImage[sy:(sy + 10), sx:(sx + 10)] = 255
+        self.__displayImage(self.displayedImage)
+        return 1
 
     def __findBoundingBox(self, points):
         x = []
@@ -151,25 +174,86 @@ class MainWindow():
         for i in points:
             x.append(i[0])
             y.append(i[1])
-        # self.canvas.create_polygon([(min(x),min(y)),(max(x),min(y)),(max(x),max(y)),(min(x),max(y))], outline='green', width=2, fill='')
-        # return (min(x),min(y)),(max(x),min(y)),(max(x),max(y)),(min(x),max(y))
         return min(x), max(x), min(y), max(y)
 
     def __findPoints(self, bbox):
-        print(bbox)
-        a = np.linspace(bbox[0],bbox[1],bbox[1]-bbox[0]+1, dtype=np.int16)
-        b = np.linspace(bbox[2],bbox[3],bbox[3]-bbox[2]+1, dtype=np.int16)
+        # print(bbox)
+        a = np.linspace(bbox[0], bbox[1], bbox[1]-bbox[0]+1, dtype=np.int16)
+        b = np.linspace(bbox[2], bbox[3], bbox[3]-bbox[2]+1, dtype=np.int16)
         c, d = np.meshgrid(a, b)
+        cx, cy = np.shape(c)
         c = c.flatten()
         d = d.flatten()
         points = []
         for i in range(len(c)):
             points.append((c[i], d[i]))
-        return points
+        return points, cx, cy
 
-    def __isInside(self, points):
-        print(points)
-        return 1
+    def __getEdge(self):
+        edgePoints = []
+        for i in range(len(self.points)):
+            if i < len(self.points)-1:
+                edgePoints.append(self.__getLinePoints(int(self.points[i][0]), int(self.points[i][1]),
+                                                       int(self.points[i + 1][0]), int(self.points[i + 1][1])))
+            else:
+                edgePoints.append(self.__getLinePoints(int(self.points[i][0]), int(self.points[i][1]),
+                                                       int(self.points[0][0]), int(self.points[0][1])))
+        return edgePoints
+
+    def __isInside(self, points, cx, cy, edgePoints):
+        ePoints = []
+        nEPoints = np.zeros((len(points)))
+        for i in range(len(edgePoints)):
+            for j in range(len(edgePoints[i])):
+                nEPoints[points.index(edgePoints[i][j])] = 1
+                ePoints.append(edgePoints[i][j])
+        nEPoints = np.reshape(nEPoints, (cx, cy))
+
+        for i in range(cx):
+            index = np.where(nEPoints[i] == 1)
+            nEPoints[i][index[0][0]:index[0][-1]] = 1
+
+        return nEPoints.flatten()
+
+    def __getInsideCod(self, points, flatPoints):
+        coodListIndex = np.where(flatPoints == 1)
+        coodList = []
+        for i in coodListIndex[0]:
+            coodList.append(points[i])
+        return coodList
+
+    def __getLinePoints(self, x1, y1, x2, y2):
+        points = []
+        issteep = abs(y2 - y1) > abs(x2 - x1)
+        if issteep:
+            x1, y1 = y1, x1
+            x2, y2 = y2, x2
+        rev = False
+        if x1 > x2:
+            x1, x2 = x2, x1
+            y1, y2 = y2, y1
+            rev = True
+        deltax = x2 - x1
+        deltay = abs(y2 - y1)
+        error = int(deltax / 2)
+        y = y1
+        ystep = None
+        if y1 < y2:
+            ystep = 1
+        else:
+            ystep = -1
+        for x in range(x1, x2 + 1):
+            if issteep:
+                points.append((y, x))
+            else:
+                points.append((x, y))
+            error -= deltay
+            if error < 0:
+                y += ystep
+                error += deltax
+        if rev:
+            points.reverse()
+        return points
 
     def __addRegion(self):
         self.p1.set(1)
@@ -277,10 +361,7 @@ class MainWindow():
                 self.displayedImage[sy:(sy+10), sx:(sx+10)] = 255
             self.__displayImage(self.displayedImage)
         else:
-            if self.p2 == 1:
-                self.errMsg = messagebox.showerror("Error!", "Go to original image ")
-            else:
-                self.errMsg = messagebox.showerror("Error!", "No region added")
+            self.errMsg = messagebox.showerror("Error!", "No region added")
     
     def __displayImage(self, image):
         if image.shape == (560, 560, 3):
