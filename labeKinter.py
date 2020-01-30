@@ -472,7 +472,7 @@ class MainWindow():
         for i in range(len(npvar[0])):
             newmaskF[i] = 0
         newmask1 = newmaskF.reshape(560,560)
-        # # self.maskFinal = np.zeros((560,560))
+        self.maskFinal = np.zeros((560,560))
         contourEdge  = []
         contourEdge.append(newmask1)
         contourEdge.append(newmask1)
