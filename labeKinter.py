@@ -459,11 +459,60 @@ class MainWindow():
         self.p2.set(0)
         self.p4.set(0)
         if self.p3.get() == 0:
-            self.p3.set(1)
+            self.p3.set(1) 
 
-        if self.contourCalcFlag == False:
-            self.contourImageRGB = self.__calculateContour()
+        # newmask = np.zeros((560,560))
+        # newmask =  np.full((560,560),255)
+
+        newmask1 = self.__renderLabelData(False)
+        newmask1 = self.edgeDetect(newmask1) 
+        newmaskF = newmask1.flatten()
+        npvar = np.where( newmaskF > 0)
+        # print('dddd', npvar)
+        for i in range(len(npvar[0])):
+            newmaskF[i] = 0
+        newmask1 = newmaskF.reshape(560,560)
+        # # self.maskFinal = np.zeros((560,560))
+        contourEdge  = []
+        contourEdge.append(newmask1)
+        contourEdge.append(newmask1)
+        contourEdge.append(newmask1)
+        contourEdge = np.asarray(contourEdge)
+        contourEdge = np.rollaxis(contourEdge, 0, 3)
+        self.contourImageRGB = self.__calculateContour() + contourEdge
+        # # if self.contourCalcFlag == False:
+        # #     self.contourImageRGB = self.__calculateContour() * contourEdge
         self.__displayImage(self.contourImageRGB)
+        
+    def edgeDetect(self,data_npa):
+        p1_s,p2_s=data_npa.shape
+        p1=np.zeros((p1_s,1),dtype=data_npa.dtype)
+        p2=np.zeros((1,p2_s+1),dtype=data_npa.dtype)
+        data_npa_e=np.concatenate((p1,data_npa),axis=1)
+        data_npa_e=np.concatenate((p2,data_npa_e),axis=0)
+
+        f=np.array([[0,1,0],[1,1,1],[0,1,0]])
+        f_c=np.array([[1,0,1],[0,0,0],[1,0,1]])
+
+        shell=np.zeros((3,3),dtype=data_npa.dtype)
+        filtered_op=np.zeros((p1_s,p2_s),dtype=data_npa.dtype)
+
+        for i in range(1,p1_s):
+            for j in range(1,p2_s):    
+                for ii in range(3):
+                    for jj in range(3):
+                        shell[ii][jj]=data_npa_e[i-1+ii][j-1+jj]
+                temp=np.add(np.multiply(shell,f),f_c)
+                temp2=temp.reshape(1,9)
+                temp2=temp2.tolist()
+                temp2=temp2[0][:]
+                try:
+                    if temp2.index(0): 
+                        filtered_op[i-1][j-1]=1
+                except ValueError:
+                    filtered_op[i-1][j-1]=0
+        final_op = np.multiply(filtered_op,data_npa)
+        return final_op
 
     def __showLabelled(self):
         self.p1.set(0)
