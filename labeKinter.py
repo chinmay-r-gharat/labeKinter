@@ -4,6 +4,7 @@ import numpy as np
 from PIL import Image, ImageTk
 from math import floor
 from scipy.interpolate import interp2d
+import time
 
 class MainWindow():
     imgl = []
@@ -26,6 +27,7 @@ class MainWindow():
     points = []
     poly = []
     polyRegionCount = 0
+    linePoints = []
 
     def __init__(self, window):
         window.title('Labe-Kinter')
@@ -146,6 +148,7 @@ class MainWindow():
         artCoord = self.__getInsideCod(points, self.__isInside(points, cx, cy, self.__getEdge()))
         self.__artificialMotion(artCoord)
         self.canvas.delete(self.poly)
+        self.linePoints = []
         self.points = []
 
     def __artificialMotion(self, coordList):
@@ -198,21 +201,19 @@ class MainWindow():
             else:
                 edgePoints.append(self.__getLinePoints(int(self.points[i][0]), int(self.points[i][1]),
                                                        int(self.points[0][0]), int(self.points[0][1])))
-        return edgePoints
+        return self.linePoints
 
     def __isInside(self, points, cx, cy, edgePoints):
-        ePoints = []
         nEPoints = np.zeros((len(points)))
+        pointsD = {}
+        for i in range(len(points)):
+            pointsD[points[i]] = i
         for i in range(len(edgePoints)):
-            for j in range(len(edgePoints[i])):
-                nEPoints[points.index(edgePoints[i][j])] = 1
-                ePoints.append(edgePoints[i][j])
+            nEPoints[pointsD[edgePoints[i]]] = 1
         nEPoints = np.reshape(nEPoints, (cx, cy))
-
         for i in range(cx):
             index = np.where(nEPoints[i] == 1)
             nEPoints[i][index[0][0]:index[0][-1]] = 1
-
         return nEPoints.flatten()
 
     def __getInsideCod(self, points, flatPoints):
@@ -245,8 +246,10 @@ class MainWindow():
         for x in range(x1, x2 + 1):
             if issteep:
                 points.append((y, x))
+                self.linePoints.append((y,x))
             else:
                 points.append((x, y))
+                self.linePoints.append((x,y))
             error -= deltay
             if error < 0:
                 y += ystep
@@ -296,7 +299,6 @@ class MainWindow():
     def __renderLabelData(self, __save__):
         self.loadedImage = np.where(self.loadedImage > 0, 1, 0)
         for i in range(self.listboxCount):
-            print('adding the masks')
             self.maskFinal = self.maskFinal + (self.maskZoomed[i] * self.loadedImage) * (i + 1)
         if __save__:
             scaling = 10
@@ -305,7 +307,6 @@ class MainWindow():
                 for j in range(a[1]):
                     slices = self.maskFinal[i * scaling:(i * scaling) + scaling, j * scaling:(j * scaling) + scaling]
                     self.mask[i][j] = slices.max()
-
         return self.maskFinal
 
     def __saveImage(self):
@@ -459,16 +460,12 @@ class MainWindow():
         self.p2.set(0)
         self.p4.set(0)
         if self.p3.get() == 0:
-            self.p3.set(1) 
-
-        # newmask = np.zeros((560,560))
-        # newmask =  np.full((560,560),255)
+            self.p3.set(1)
 
         newmask1 = self.__renderLabelData(False)
-        newmask1 = self.edgeDetect(newmask1) 
+        newmask1 = self.__edgeDetect(newmask1)
         newmaskF = newmask1.flatten()
-        npvar = np.where( newmaskF > 0)
-        # print('dddd', npvar)
+        npvar = np.where(newmaskF > 0)
         for i in range(len(npvar[0])):
             newmaskF[i] = 0
         newmask1 = newmaskF.reshape(560,560)
@@ -480,38 +477,41 @@ class MainWindow():
         contourEdge = np.asarray(contourEdge)
         contourEdge = np.rollaxis(contourEdge, 0, 3)
         self.contourImageRGB = self.__calculateContour() + contourEdge
-        # # if self.contourCalcFlag == False:
-        # #     self.contourImageRGB = self.__calculateContour() * contourEdge
         self.__displayImage(self.contourImageRGB)
         
-    def edgeDetect(self,data_npa):
-        p1_s,p2_s=data_npa.shape
-        p1=np.zeros((p1_s,1),dtype=data_npa.dtype)
-        p2=np.zeros((1,p2_s+1),dtype=data_npa.dtype)
-        data_npa_e=np.concatenate((p1,data_npa),axis=1)
-        data_npa_e=np.concatenate((p2,data_npa_e),axis=0)
+    def __edgeDetect(self, data_npa):
+        s_time = time.time()
+        p1_s, p2_s = data_npa.shape
+        p1 = np.zeros((p1_s, 1), dtype=data_npa.dtype)
+        p2 = np.zeros((1, p2_s+1), dtype=data_npa.dtype)
+        data_npa_e = np.concatenate((p1, data_npa), axis=1)
+        data_npa_e = np.concatenate((p2, data_npa_e), axis=0)
 
-        f=np.array([[0,1,0],[1,1,1],[0,1,0]])
-        f_c=np.array([[1,0,1],[0,0,0],[1,0,1]])
+        f = np.array([[0, 1, 0], [1, 1, 1], [0, 1, 0]])
+        f_c = np.array([[1, 0, 1], [0, 0, 0], [1, 0, 1]])
 
-        shell=np.zeros((3,3),dtype=data_npa.dtype)
-        filtered_op=np.zeros((p1_s,p2_s),dtype=data_npa.dtype)
+        shell = np.zeros((3, 3), dtype=data_npa.dtype)
+        filtered_op = np.zeros((p1_s, p2_s), dtype=data_npa.dtype)
 
-        for i in range(1,p1_s):
-            for j in range(1,p2_s):    
+        for i in range(1, p1_s):
+        # for i in range(0, p1_s-1):
+            for j in range(1, p2_s):
+            # for j in range(0, p2_s-1):
                 for ii in range(3):
                     for jj in range(3):
-                        shell[ii][jj]=data_npa_e[i-1+ii][j-1+jj]
-                temp=np.add(np.multiply(shell,f),f_c)
-                temp2=temp.reshape(1,9)
-                temp2=temp2.tolist()
-                temp2=temp2[0][:]
+                        shell[ii][jj] = data_npa_e[i-1+ii][j-1+jj]
+                # shell[:] = data_npa_e[i:i+3, j:j+3]
+                temp = np.add(np.multiply(shell, f), f_c)
+                temp2 = temp.reshape(1, 9)
+                temp2 = temp2.tolist()
+                temp2 = temp2[0][:]
                 try:
                     if temp2.index(0): 
-                        filtered_op[i-1][j-1]=1
+                        filtered_op[i-1][j-1] = 1
                 except ValueError:
-                    filtered_op[i-1][j-1]=0
-        final_op = np.multiply(filtered_op,data_npa)
+                    filtered_op[i-1][j-1] = 0
+        final_op = np.multiply(filtered_op, data_npa)
+        print('Time required to calculate contour of contour is:', time.time() - s_time)
         return final_op
 
     def __showLabelled(self):
